@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 10,
     borderRadius: 14,
-    backgroundColor: "#ffffff",
+    backgroundColor: BRAND_BEIGE,
   },
   logoUnderlineTrack: {
     marginTop: 8,
