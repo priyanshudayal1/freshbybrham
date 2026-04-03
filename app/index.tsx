@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+    ActivityIndicator,
     Animated,
     BackHandler,
     Easing,
@@ -59,10 +60,9 @@ export default function HomeScreen() {
   const webViewRef = useRef<WebView>(null);
   const canGoBackRef = useRef(false);
   const pulseAnim = useRef(new Animated.Value(0)).current;
-  const loadLineAnim = useRef(new Animated.Value(0)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+  const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [isPageLoaded, setIsPageLoaded] = useState(false);
-  const [isLoadLineComplete, setIsLoadLineComplete] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   const onNavigationStateChange = useCallback((navState: WebViewNavigation) => {
@@ -87,41 +87,23 @@ export default function HomeScreen() {
   );
 
   const retry = useCallback(() => {
+    setIsLoading(true);
     setHasError(false);
-    setIsPageLoaded(false);
-    setIsLoadLineComplete(false);
     setReloadKey((current) => current + 1);
   }, []);
 
   const onError = useCallback(() => {
+    setIsLoading(false);
     setHasError(true);
   }, []);
 
-  const startLoadLine = useCallback(() => {
-    loadLineAnim.stopAnimation();
-    loadLineAnim.setValue(0);
-    setIsLoadLineComplete(false);
-
-    Animated.timing(loadLineAnim, {
-      toValue: 1,
-      duration: 1600,
-      easing: Easing.inOut(Easing.cubic),
-      useNativeDriver: false,
-    }).start(({ finished }) => {
-      if (finished) {
-        setIsLoadLineComplete(true);
-      }
-    });
-  }, [loadLineAnim]);
-
   const onLoadStart = useCallback(() => {
+    setIsLoading(true);
     setHasError(false);
-    setIsPageLoaded(false);
-    startLoadLine();
-  }, [startLoadLine]);
+  }, []);
 
   const onLoadEnd = useCallback(() => {
-    setIsPageLoaded(true);
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -162,16 +144,23 @@ export default function HomeScreen() {
       ]),
     );
 
+    const shimmer = Animated.loop(
+      Animated.timing(shimmerAnim, {
+        toValue: 1,
+        duration: 1300,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+
     pulse.start();
+    shimmer.start();
 
     return () => {
       pulse.stop();
+      shimmer.stop();
     };
-  }, [pulseAnim]);
-
-  useEffect(() => {
-    startLoadLine();
-  }, [startLoadLine]);
+  }, [pulseAnim, shimmerAnim]);
 
   const logoScale = pulseAnim.interpolate({
     inputRange: [0, 1],
@@ -183,12 +172,10 @@ export default function HomeScreen() {
     outputRange: [0.78, 1],
   });
 
-  const loadLineWidth = loadLineAnim.interpolate({
+  const shimmerTranslateX = shimmerAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 170],
+    outputRange: [-120, 120],
   });
-
-  const showLoaderOverlay = !isPageLoaded || !isLoadLineComplete;
 
   if (hasError) {
     return (
@@ -205,7 +192,14 @@ export default function HomeScreen() {
           >
             <SvgUri uri={LOGO_URL} width={170} height={80} />
             <View style={styles.logoUnderlineTrack}>
-              <View style={styles.logoUnderlineStatic} />
+              <Animated.View
+                style={[
+                  styles.logoUnderlineShimmer,
+                  {
+                    transform: [{ translateX: shimmerTranslateX }],
+                  },
+                ]}
+              />
             </View>
           </Animated.View>
           <Text style={styles.fallbackTitle}>Unable to load the website</Text>
@@ -222,43 +216,51 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <WebView
-        key={reloadKey}
-        ref={webViewRef}
-        source={{ uri: APP_URL }}
-        style={[styles.webview, showLoaderOverlay && styles.webviewHidden]}
-        onError={onError}
-        onLoadStart={onLoadStart}
-        onLoadEnd={onLoadEnd}
-        onNavigationStateChange={onNavigationStateChange}
-        onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-      />
+      <View style={styles.webviewContainer}>
+        <WebView
+          key={reloadKey}
+          ref={webViewRef}
+          source={{ uri: APP_URL }}
+          style={styles.webview}
+          onError={onError}
+          onLoadStart={onLoadStart}
+          onLoadEnd={onLoadEnd}
+          onNavigationStateChange={onNavigationStateChange}
+          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+        />
 
-      {showLoaderOverlay && (
-        <View style={styles.loaderOverlay} pointerEvents="none">
-          <View style={styles.loaderContainer}>
-            <Animated.View
-              style={[
-                styles.logoCard,
-                {
-                  transform: [{ scale: logoScale }],
-                  opacity: logoOpacity,
-                },
-              ]}
-            >
-              <SvgUri uri={LOGO_URL} width={190} height={90} />
-              <View style={styles.logoUnderlineTrack}>
-                <Animated.View
-                  style={[styles.logoUnderlineFill, { width: loadLineWidth }]}
-                />
-              </View>
-            </Animated.View>
-            <Text style={styles.loaderLabel}>
-              Preparing fresh experience...
-            </Text>
+        {isLoading && !hasError ? (
+          <View style={styles.loaderOverlay}>
+            <View style={styles.loaderContainer}>
+              <Animated.View
+                style={[
+                  styles.logoCard,
+                  {
+                    transform: [{ scale: logoScale }],
+                    opacity: logoOpacity,
+                  },
+                ]}
+              >
+                <SvgUri uri={LOGO_URL} width={190} height={90} />
+                <View style={styles.logoUnderlineTrack}>
+                  <Animated.View
+                    style={[
+                      styles.logoUnderlineShimmer,
+                      {
+                        transform: [{ translateX: shimmerTranslateX }],
+                      },
+                    ]}
+                  />
+                </View>
+              </Animated.View>
+              <ActivityIndicator size="small" color="#355945" />
+              <Text style={styles.loaderLabel}>
+                Preparing fresh experience...
+              </Text>
+            </View>
           </View>
-        </View>
-      )}
+        ) : null}
+      </View>
     </SafeAreaView>
   );
 }
@@ -272,8 +274,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
   },
-  webviewHidden: {
-    opacity: 0,
+  webviewContainer: {
+    flex: 1,
   },
   loaderOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -282,7 +284,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   loaderContainer: {
-    width: "100%",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
@@ -304,13 +305,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#e8ece8",
     overflow: "hidden",
   },
-  logoUnderlineFill: {
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: "#355945",
-  },
-  logoUnderlineStatic: {
-    width: 170,
+  logoUnderlineShimmer: {
+    width: 64,
     height: 4,
     borderRadius: 999,
     backgroundColor: "#355945",
