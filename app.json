@@ -5,7 +5,7 @@
     "slug": "freshbybrham",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon-brand.png",
     "scheme": "freshbybrham",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -18,29 +18,29 @@
     "android": {
       "package": "com.freshbybrham.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#F5F7EE",
+        "foregroundImage": "./assets/images/android-icon-foreground-brand.png",
+        "backgroundImage": "./assets/images/android-icon-background-brand.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome-brand.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon-brand.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash-brand.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#F5F7EE",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#F5F7EE"
           }
         }
       ]

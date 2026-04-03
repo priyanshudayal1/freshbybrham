@@ -11,6 +11,7 @@ import {
     Text,
     View,
 } from "react-native";
+import * as NavigationBar from "expo-navigation-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SvgUri } from "react-native-svg";
 import WebView, { WebViewNavigation } from "react-native-webview";
@@ -127,6 +128,24 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
+    if (Platform.OS !== "android") {
+      return;
+    }
+
+    NavigationBar.setPositionAsync("absolute").catch(() => {
+      // Non-fatal: if not available, keep default system behavior.
+    });
+
+    NavigationBar.setBehaviorAsync("inset-swipe").catch(() => {
+      // Non-fatal: if not available, keep default system behavior.
+    });
+
+    NavigationBar.setVisibilityAsync("hidden").catch(() => {
+      // Non-fatal: if not available, keep default system behavior.
+    });
+  }, []);
+
+  useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -179,7 +198,7 @@ export default function HomeScreen() {
 
   if (hasError) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.fallbackContainer}>
           <Animated.View
             style={[
@@ -215,7 +234,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.webviewContainer}>
         <WebView
           key={reloadKey}
