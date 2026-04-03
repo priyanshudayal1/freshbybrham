@@ -65,18 +65,31 @@ export default function HomeScreen() {
   const webViewRef = useRef<WebView>(null);
   const canGoBackRef = useRef(false);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
+  const [errorType, setErrorType] = useState<"offline" | "generic" | null>(
+    null,
+  );
   const [reloadKey, setReloadKey] = useState(0);
 
+  const clearLoadTimeout = useCallback(() => {
+    if (!loadTimeoutRef.current) {
+      return;
+    }
+
+    clearTimeout(loadTimeoutRef.current);
+    loadTimeoutRef.current = null;
+  }, []);
+
   const startFresh = useCallback(() => {
+    clearLoadTimeout();
     canGoBackRef.current = false;
     setIsLoading(true);
-    setHasError(false);
+    setErrorType(null);
     setReloadKey((current) => current + 1);
-  }, []);
+  }, [clearLoadTimeout]);
 
   const onNavigationStateChange = useCallback((navState: WebViewNavigation) => {
     canGoBackRef.current = navState.canGoBack;
@@ -103,19 +116,39 @@ export default function HomeScreen() {
     startFresh();
   }, [startFresh]);
 
-  const onError = useCallback(() => {
-    setIsLoading(false);
-    setHasError(true);
-  }, []);
+  const onError = useCallback(
+    (event?: { nativeEvent?: { description?: string } }) => {
+      const description =
+        event?.nativeEvent?.description?.toLowerCase().trim() ?? "";
+      const isOfflineError =
+        description.includes("internet") ||
+        description.includes("network") ||
+        description.includes("offline") ||
+        description.includes("timed out") ||
+        description.includes("unreachable");
+
+      clearLoadTimeout();
+      setIsLoading(false);
+      setErrorType(isOfflineError ? "offline" : "generic");
+    },
+    [clearLoadTimeout],
+  );
 
   const onLoadStart = useCallback(() => {
+    clearLoadTimeout();
+    loadTimeoutRef.current = setTimeout(() => {
+      setIsLoading(false);
+      setErrorType("offline");
+    }, 12000);
+
     setIsLoading(true);
-    setHasError(false);
-  }, []);
+    setErrorType(null);
+  }, [clearLoadTimeout]);
 
   const onLoadEnd = useCallback(() => {
+    clearLoadTimeout();
     setIsLoading(false);
-  }, []);
+  }, [clearLoadTimeout]);
 
   useFocusEffect(
     useCallback(() => {
@@ -204,6 +237,13 @@ export default function HomeScreen() {
     };
   }, [pulseAnim, shimmerAnim]);
 
+  useEffect(
+    () => () => {
+      clearLoadTimeout();
+    },
+    [clearLoadTimeout],
+  );
+
   const logoScale = pulseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0.97, 1.03],
@@ -219,7 +259,7 @@ export default function HomeScreen() {
     outputRange: [-120, 120],
   });
 
-  if (hasError) {
+  if (errorType) {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.fallbackContainer}>
@@ -244,9 +284,15 @@ export default function HomeScreen() {
               />
             </View>
           </Animated.View>
-          <Text style={styles.fallbackTitle}>Unable to load the website</Text>
+          <Text style={styles.fallbackTitle}>
+            {errorType === "offline"
+              ? "No internet connection"
+              : "Unable to load the website"}
+          </Text>
           <Text style={styles.fallbackSubtitle}>
-            Check your internet connection and try again.
+            {errorType === "offline"
+              ? "Please check your connection and try again."
+              : "Something went wrong while opening Fresh by Brham. Please try again."}
           </Text>
           <Pressable style={styles.retryButton} onPress={retry}>
             <Text style={styles.retryButtonText}>Retry</Text>
@@ -265,13 +311,14 @@ export default function HomeScreen() {
           source={{ uri: APP_URL }}
           style={styles.webview}
           onError={onError}
+          onHttpError={onError}
           onLoadStart={onLoadStart}
           onLoadEnd={onLoadEnd}
           onNavigationStateChange={onNavigationStateChange}
           onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         />
 
-        {isLoading && !hasError ? (
+        {isLoading && !errorType ? (
           <View style={styles.loaderOverlay}>
             <View style={styles.loaderContainer}>
               <Animated.View
@@ -296,9 +343,7 @@ export default function HomeScreen() {
                 </View> */}
               </Animated.View>
               <ActivityIndicator size="small" color="#355945" />
-              <Text style={styles.loaderLabel}>
-                Preparing fresh experience...
-              </Text>
+              <Text style={styles.loaderLabel}>Loading Fresh by Brham...</Text>
             </View>
           </View>
         ) : null}
