@@ -1,17 +1,20 @@
+import * as NavigationBar from "expo-navigation-bar";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    BackHandler,
-    Easing,
-    Linking,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Animated,
+  AppState,
+  AppStateStatus,
+  BackHandler,
+  Easing,
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import * as NavigationBar from "expo-navigation-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SvgUri } from "react-native-svg";
 import WebView, { WebViewNavigation } from "react-native-webview";
@@ -60,11 +63,19 @@ function shouldOpenExternally(url: string): boolean {
 export default function HomeScreen() {
   const webViewRef = useRef<WebView>(null);
   const canGoBackRef = useRef(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+
+  const startFresh = useCallback(() => {
+    canGoBackRef.current = false;
+    setIsLoading(true);
+    setHasError(false);
+    setReloadKey((current) => current + 1);
+  }, []);
 
   const onNavigationStateChange = useCallback((navState: WebViewNavigation) => {
     canGoBackRef.current = navState.canGoBack;
@@ -88,10 +99,8 @@ export default function HomeScreen() {
   );
 
   const retry = useCallback(() => {
-    setIsLoading(true);
-    setHasError(false);
-    setReloadKey((current) => current + 1);
-  }, []);
+    startFresh();
+  }, [startFresh]);
 
   const onError = useCallback(() => {
     setIsLoading(false);
@@ -106,6 +115,27 @@ export default function HomeScreen() {
   const onLoadEnd = useCallback(() => {
     setIsLoading(false);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      startFresh();
+    }, [startFresh]),
+  );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (
+        appStateRef.current.match(/inactive|background/) &&
+        nextState === "active"
+      ) {
+        startFresh();
+      }
+
+      appStateRef.current = nextState;
+    });
+
+    return () => subscription.remove();
+  }, [startFresh]);
 
   useEffect(() => {
     if (Platform.OS !== "android") {
@@ -131,14 +161,6 @@ export default function HomeScreen() {
     if (Platform.OS !== "android") {
       return;
     }
-
-    NavigationBar.setPositionAsync("absolute").catch(() => {
-      // Non-fatal: if not available, keep default system behavior.
-    });
-
-    NavigationBar.setBehaviorAsync("inset-swipe").catch(() => {
-      // Non-fatal: if not available, keep default system behavior.
-    });
 
     NavigationBar.setVisibilityAsync("hidden").catch(() => {
       // Non-fatal: if not available, keep default system behavior.
@@ -261,7 +283,7 @@ export default function HomeScreen() {
                 ]}
               >
                 <SvgUri uri={LOGO_URL} width={190} height={90} />
-                <View style={styles.logoUnderlineTrack}>
+                {/* <View style={styles.logoUnderlineTrack}>
                   <Animated.View
                     style={[
                       styles.logoUnderlineShimmer,
@@ -270,7 +292,7 @@ export default function HomeScreen() {
                       },
                     ]}
                   />
-                </View>
+                </View> */}
               </Animated.View>
               <ActivityIndicator size="small" color="#355945" />
               <Text style={styles.loaderLabel}>
