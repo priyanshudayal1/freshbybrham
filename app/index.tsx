@@ -67,7 +67,6 @@ export default function HomeScreen() {
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pulseAnim = useRef(new Animated.Value(0)).current;
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
   const [isLoading, setIsLoading] = useState(true);
   const [errorType, setErrorType] = useState<"offline" | "generic" | null>(
     null,
@@ -219,23 +218,12 @@ export default function HomeScreen() {
       ]),
     );
 
-    const shimmer = Animated.loop(
-      Animated.timing(shimmerAnim, {
-        toValue: 1,
-        duration: 1300,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    );
-
     pulse.start();
-    shimmer.start();
 
     return () => {
       pulse.stop();
-      shimmer.stop();
     };
-  }, [pulseAnim, shimmerAnim]);
+  }, [pulseAnim]);
 
   useEffect(
     () => () => {
@@ -254,11 +242,6 @@ export default function HomeScreen() {
     outputRange: [0.78, 1],
   });
 
-  const shimmerTranslateX = shimmerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-120, 120],
-  });
-
   if (errorType) {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -273,16 +256,6 @@ export default function HomeScreen() {
             ]}
           >
             <SvgUri uri={LOGO_URL} width={170} height={80} />
-            <View style={styles.logoUnderlineTrack}>
-              <Animated.View
-                style={[
-                  styles.logoUnderlineShimmer,
-                  {
-                    transform: [{ translateX: shimmerTranslateX }],
-                  },
-                ]}
-              />
-            </View>
           </Animated.View>
           <Text style={styles.fallbackTitle}>
             {errorType === "offline"
@@ -330,7 +303,7 @@ export default function HomeScreen() {
                   },
                 ]}
               >
-                <SvgUri uri={LOGO_URL} width={190} height={90} />
+                <SvgUri uri={LOGO_URL} width={240} height={110} />
                 {/* <View style={styles.logoUnderlineTrack}>
                   <Animated.View
                     style={[
@@ -342,7 +315,7 @@ export default function HomeScreen() {
                   />
                 </View> */}
               </Animated.View>
-              <ActivityIndicator size="small" color="#355945" />
+              <ActivityIndicator size="large" color="#355945" />
               <Text style={styles.loaderLabel}>Loading Fresh by Brham...</Text>
             </View>
           </View>
@@ -375,32 +348,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
-    gap: 14,
+    gap: 18,
   },
   logoCard: {
-    width: 220,
+    width: 280,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    paddingVertical: 16,
     borderRadius: 14,
     backgroundColor: BRAND_BEIGE,
   },
-  logoUnderlineTrack: {
-    marginTop: 8,
-    width: 170,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: "#e8ece8",
-    overflow: "hidden",
-  },
-  logoUnderlineShimmer: {
-    width: 64,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: "#355945",
-  },
   loaderLabel: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#355945",
     fontWeight: "600",
   },
