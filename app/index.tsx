@@ -22,6 +22,7 @@ import WebView, { WebViewNavigation } from "react-native-webview";
 const APP_URL = "https://freshbybrham.com/";
 const LOGO_URL =
   "https://freshbybrham.com/wp-content/uploads/2025/12/Fresh-By-Brham-2.svg";
+const BRAND_BEIGE = "#F3F0E9";
 
 const EXTERNAL_SCHEMES = [
   "mailto:",
@@ -309,20 +310,21 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: BRAND_BEIGE,
   },
   webview: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: BRAND_BEIGE,
   },
   webviewContainer: {
     flex: 1,
+    backgroundColor: BRAND_BEIGE,
   },
   loaderOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: BRAND_BEIGE,
   },
   loaderContainer: {
     alignItems: "center",
